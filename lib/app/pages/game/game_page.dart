@@ -8,70 +8,106 @@ import 'package:tic_tac_toe/app/controllers/game_controller.dart';
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
 import 'package:tic_tac_toe/app/pages/game/widgets/board_painter.dart';
 
-class GamePage extends GetView<GameController> {
+class GamePage extends StatefulWidget {
   const GamePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+  State<GamePage> createState() => _GamePageState();
+}
 
-    // Show result dialog when game ends
-    ever(controller.phase, (phase) {
-      if (phase == GamePhase.gameOver) {
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (Get.isDialogOpen != true) {
-            _showResultDialog(cs);
-          }
-        });
-      }
-    });
+class _GamePageState extends State<GamePage>
+    with SingleTickerProviderStateMixin {
+  // Entrance animation for status bar + board
+  late AnimationController _entranceCtrl;
+  late Animation<double> _statusFade;
+  late Animation<Offset> _statusSlide;
+  late Animation<double> _boardScale;
+  late Animation<double> _boardFade;
 
-    return Scaffold(
-      backgroundColor: cs.surface,
-      appBar: AppBar(
-        title: Obx(
-          () => Text(
-            controller.gameType.value == GameType.tictactoe
-                ? 'tic_tac_toe'.tr
-                : 'gomoku'.tr,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: controller.restartGame,
-            tooltip: 'restart'.tr,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Column(
-                children: [
-                  SizedBox(height: 12.h),
-                  _StatusBar(ctrl: controller),
-                  SizedBox(height: 16.h),
-                  Expanded(child: _BoardArea(ctrl: controller)),
-                  SizedBox(height: 12.h),
-                ],
-              ),
-            ),
-            BannerAdWidget(
-              adUnitId: AdHelper.bannerAdUnitId,
-              type: AdHelper.banner,
-            ),
-          ],
-        ),
+  // Win pulse animation
+  late AnimationController _pulseCtrl;
+
+  Worker? _phaseWorker;
+  Worker? _winnerWorker;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _entranceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _statusFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entranceCtrl,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
+    _statusSlide = Tween<Offset>(
+      begin: const Offset(0, -0.5),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _entranceCtrl,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    _boardScale = Tween<double>(begin: 0.75, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entranceCtrl,
+        curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
+      ),
+    );
+    _boardFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entranceCtrl,
+        curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+
+    _entranceCtrl.forward();
+
+    final ctrl = Get.find<GameController>();
+
+    _phaseWorker = ever(ctrl.phase, (phase) {
+      if (phase == GamePhase.gameOver) {
+        // Start pulsing when game ends
+        _pulseCtrl.repeat(reverse: true);
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (Get.isDialogOpen != true) {
+            _showResultDialog();
+          }
+        });
+      } else {
+        _pulseCtrl.stop();
+        _pulseCtrl.reset();
+      }
+    });
   }
 
-  void _showResultDialog(ColorScheme cs) {
-    final w = controller.winner.value;
-    final isTTT = controller.gameType.value == GameType.tictactoe;
-    final isVsAI = controller.isVsAI;
+  @override
+  void dispose() {
+    _phaseWorker?.dispose();
+    _winnerWorker?.dispose();
+    _entranceCtrl.dispose();
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showResultDialog() {
+    final ctrl = Get.find<GameController>();
+    final cs = Theme.of(context).colorScheme;
+
+    final w = ctrl.winner.value;
+    final isTTT = ctrl.gameType.value == GameType.tictactoe;
+    final isVsAI = ctrl.isVsAI;
 
     String title;
     String subtitle;
@@ -92,51 +128,276 @@ class GamePage extends GetView<GameController> {
     }
 
     Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              w == 1 ? '🎉' : w == 2 ? '😔' : '🤝',
-              style: TextStyle(fontSize: 48.sp),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.w900,
-                color: color,
-              ),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              subtitle,
-              style: TextStyle(fontSize: 14.sp, color: cs.onSurfaceVariant),
-            ),
-            SizedBox(height: 20.h),
-            // Stats row
-            _StatsRow(isTTT: isTTT),
-          ],
+      _ResultDialog(
+        emoji: w == 1 ? '🎉' : w == 2 ? '😔' : '🤝',
+        title: title,
+        subtitle: subtitle,
+        titleColor: color,
+        isTTT: isTTT,
+        onPlayAgain: () {
+          Get.back();
+          ctrl.restartGame();
+        },
+        onHome: () {
+          Get.back();
+          Get.back();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final ctrl = Get.find<GameController>();
+
+    return Scaffold(
+      backgroundColor: cs.surface,
+      appBar: AppBar(
+        title: Obx(
+          () => Text(
+            ctrl.gameType.value == GameType.tictactoe
+                ? 'tic_tac_toe'.tr
+                : 'gomoku'.tr,
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-              Get.back(); // back to home
+          _AnimatedIconButton(
+            icon: Icons.refresh_rounded,
+            tooltip: 'restart'.tr,
+            onTap: () {
+              _pulseCtrl.stop();
+              _pulseCtrl.reset();
+              ctrl.restartGame();
             },
-            child: Text('home'.tr),
-          ),
-          FilledButton(
-            onPressed: () {
-              Get.back();
-              controller.restartGame();
-            },
-            child: Text('play_again'.tr),
           ),
         ],
       ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  SizedBox(height: 12.h),
+                  // Status bar entrance
+                  FadeTransition(
+                    opacity: _statusFade,
+                    child: SlideTransition(
+                      position: _statusSlide,
+                      child: _StatusBar(ctrl: ctrl),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  // Board entrance
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _boardFade,
+                      child: ScaleTransition(
+                        scale: _boardScale,
+                        child: _BoardArea(
+                          ctrl: ctrl,
+                          pulseCtrl: _pulseCtrl,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                ],
+              ),
+            ),
+            BannerAdWidget(
+              adUnitId: AdHelper.bannerAdUnitId,
+              type: AdHelper.banner,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Animated Icon Button ─────────────────────────────────
+
+class _AnimatedIconButton extends StatefulWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  const _AnimatedIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedIconButton> createState() => _AnimatedIconButtonState();
+}
+
+class _AnimatedIconButtonState extends State<_AnimatedIconButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _rotAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _rotAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _rotAnim,
+      child: IconButton(
+        icon: Icon(widget.icon),
+        onPressed: () {
+          _ctrl.forward(from: 0);
+          widget.onTap();
+        },
+        tooltip: widget.tooltip,
+      ),
+    );
+  }
+}
+
+// ─── Result Dialog ────────────────────────────────────────
+
+class _ResultDialog extends StatefulWidget {
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final Color titleColor;
+  final bool isTTT;
+  final VoidCallback onPlayAgain;
+  final VoidCallback onHome;
+
+  const _ResultDialog({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.titleColor,
+    required this.isTTT,
+    required this.onPlayAgain,
+    required this.onHome,
+  });
+
+  @override
+  State<_ResultDialog> createState() => _ResultDialogState();
+}
+
+class _ResultDialogState extends State<_ResultDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _emojiScale;
+  late Animation<double> _contentFade;
+  late Animation<Offset> _contentSlide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _emojiScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
+      ),
+    );
+    _contentFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: const Interval(0.35, 0.8, curve: Curves.easeOut),
+      ),
+    );
+    _contentSlide = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: const Interval(0.35, 0.8, curve: Curves.easeOut),
+      ),
+    );
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ScaleTransition(
+            scale: _emojiScale,
+            child: Text(
+              widget.emoji,
+              style: TextStyle(fontSize: 48.sp),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          FadeTransition(
+            opacity: _contentFade,
+            child: SlideTransition(
+              position: _contentSlide,
+              child: Column(
+                children: [
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.w900,
+                      color: widget.titleColor,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    widget.subtitle,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  _StatsRow(isTTT: widget.isTTT),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: widget.onHome,
+          child: Text('home'.tr),
+        ),
+        FilledButton(
+          onPressed: widget.onPlayAgain,
+          child: Text('play_again'.tr),
+        ),
+      ],
     );
   }
 }
@@ -212,11 +473,25 @@ class _StatusBar extends StatelessWidget {
                   ),
                 ),
               ),
-            Text(
-              text,
-              style: TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.3),
+                    end: Offset.zero,
+                  ).animate(anim),
+                  child: child,
+                ),
+              ),
+              child: Text(
+                text,
+                key: ValueKey(text),
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -230,7 +505,8 @@ class _StatusBar extends StatelessWidget {
 
 class _BoardArea extends StatelessWidget {
   final GameController ctrl;
-  const _BoardArea({required this.ctrl});
+  final AnimationController pulseCtrl;
+  const _BoardArea({required this.ctrl, required this.pulseCtrl});
 
   @override
   Widget build(BuildContext context) {
@@ -238,15 +514,12 @@ class _BoardArea extends StatelessWidget {
     final isTTT = ctrl.gameType.value == GameType.tictactoe;
     final isVsAI = ctrl.isVsAI;
 
-    // Colors
-    final p1Color = cs.primary; // X or Black
-    final p2Color = isVsAI
-        ? cs.error
-        : cs.secondary; // O or White (AI is red in vs AI)
+    final p1Color = cs.primary;
+    final p2Color = isVsAI ? cs.error : cs.secondary;
     final gridColor = cs.outlineVariant;
     final bgColor = isTTT
         ? cs.surfaceContainerLow
-        : const Color(0xFFDEB887); // Burlywood for Gomoku
+        : const Color(0xFFDEB887);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -254,36 +527,73 @@ class _BoardArea extends StatelessWidget {
         child: AspectRatio(
           aspectRatio: 1,
           child: Obx(() {
-            return GestureDetector(
-              onTapDown: (details) {
-                if (!ctrl.isPlaying) return;
-                if (ctrl.isAiThinking.value) return;
-                if (isVsAI && ctrl.currentPlayer.value == 2) return;
+            // Win glow pulse overlay
+            final isGameOver = ctrl.phase.value == GamePhase.gameOver;
+            final hasWinner = ctrl.winner.value != 0;
 
-                final box = context.findRenderObject() as RenderBox?;
-                if (box == null) return;
-                final localPos = box.globalToLocal(details.globalPosition);
-                final size = box.size;
-                final n = ctrl.gridSize;
-                final col = (localPos.dx / size.width * n).floor();
-                final row = (localPos.dy / size.height * n).floor();
-                if (row >= 0 && row < n && col >= 0 && col < n) {
-                  ctrl.placePiece(row, col);
-                }
+            return AnimatedBuilder(
+              animation: pulseCtrl,
+              builder: (context, child) {
+                // Pulse the board container when there's a winner
+                final pulse = isGameOver && hasWinner
+                    ? pulseCtrl.value
+                    : 0.0;
+
+                final winnerColor = ctrl.winner.value == 1
+                    ? p1Color
+                    : ctrl.winner.value == 2
+                    ? p2Color
+                    : Colors.transparent;
+
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16.r),
+                    boxShadow: pulse > 0
+                        ? [
+                            BoxShadow(
+                              color: winnerColor.withValues(
+                                alpha: 0.45 * pulse,
+                              ),
+                              blurRadius: 24 + 12 * pulse,
+                              spreadRadius: 4 * pulse,
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: child,
+                );
               },
-              child: CustomPaint(
-                painter: BoardPainter(
-                  board: ctrl.board,
-                  gameType: ctrl.gameType.value,
-                  winLine: ctrl.winLine.value,
-                  winProgress: ctrl.winProgress.value,
-                  lastPlaced: ctrl.lastPlaced.value,
-                  p1Color: p1Color,
-                  p2Color: p2Color,
-                  gridColor: gridColor,
-                  bgColor: bgColor,
+              child: GestureDetector(
+                onTapDown: (details) {
+                  if (!ctrl.isPlaying) return;
+                  if (ctrl.isAiThinking.value) return;
+                  if (isVsAI && ctrl.currentPlayer.value == 2) return;
+
+                  final box = context.findRenderObject() as RenderBox?;
+                  if (box == null) return;
+                  final localPos = box.globalToLocal(details.globalPosition);
+                  final size = box.size;
+                  final n = ctrl.gridSize;
+                  final col = (localPos.dx / size.width * n).floor();
+                  final row = (localPos.dy / size.height * n).floor();
+                  if (row >= 0 && row < n && col >= 0 && col < n) {
+                    ctrl.placePiece(row, col);
+                  }
+                },
+                child: CustomPaint(
+                  painter: BoardPainter(
+                    board: ctrl.board,
+                    gameType: ctrl.gameType.value,
+                    winLine: ctrl.winLine.value,
+                    winProgress: ctrl.winProgress.value,
+                    lastPlaced: ctrl.lastPlaced.value,
+                    p1Color: p1Color,
+                    p2Color: p2Color,
+                    gridColor: gridColor,
+                    bgColor: bgColor,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
               ),
             );
           }),
@@ -325,23 +635,38 @@ class _StatChip extends StatelessWidget {
   final String label;
   final int value;
   final Color color;
-  const _StatChip({required this.label, required this.value, required this.color});
+  const _StatChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          '$value',
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w900,
-            color: color,
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          transitionBuilder: (child, anim) => ScaleTransition(
+            scale: anim,
+            child: FadeTransition(opacity: anim, child: child),
+          ),
+          child: Text(
+            '$value',
+            key: ValueKey(value),
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
           ),
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 11.sp, color: color.withValues(alpha: 0.7)),
+          style: TextStyle(
+            fontSize: 11.sp,
+            color: color.withValues(alpha: 0.7),
+          ),
         ),
       ],
     );
