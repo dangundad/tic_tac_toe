@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:tic_tac_toe/app/admob/ads_rewarded.dart';
 import 'package:tic_tac_toe/app/data/enums/ai_difficulty.dart';
 import 'package:tic_tac_toe/app/data/enums/game_mode.dart';
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
@@ -26,6 +28,9 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   final gameMode = GameMode.vsAI.obs;
   final difficulty = AiDifficulty.medium.obs;
 
+  // AI Upgrade (rewarded ad)
+  final tempAIDifficultyUpgraded = false.obs;
+
   // Game state
   final board = <List<int>>[].obs;
   final currentPlayer = 1.obs;
@@ -42,6 +47,9 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   // Win line animation
   late AnimationController winAnim;
   final winProgress = 0.0.obs;
+
+  // Confetti (player win only)
+  final showConfetti = false.obs;
 
   int get gridSize => gameType.value == GameType.tictactoe ? 3 : 15;
   int get winLen => gameType.value == GameType.tictactoe ? 3 : 5;
@@ -102,6 +110,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     isAiThinking.value = false;
     winAnim.reset();
     winProgress.value = 0;
+    showConfetti.value = false;
   }
 
   void placePiece(int row, int col) {
@@ -118,6 +127,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     board[row][col] = player;
     lastPlaced.value = [row, col];
     board.refresh();
+    HapticFeedback.selectionClick();
   }
 
   void _afterPlace(int player) {
@@ -149,12 +159,39 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     _afterPlace(2);
   }
 
+  void requestAiUpgrade() {
+    RewardedAdManager.to.showAdIfAvailable(
+      onUserEarnedReward: (_) {
+        tempAIDifficultyUpgraded.value = true;
+        Get.snackbar(
+          'ai_upgrade_title'.tr,
+          'ai_upgrade_desc'.tr,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 3),
+        );
+      },
+    );
+  }
+
   void _endGame(int w, List<int>? line) {
     phase.value = GamePhase.gameOver;
     winner.value = w;
     winLine.value = line;
     if (line != null) winAnim.forward();
+    // Reset AI upgrade after game ends
+    tempAIDifficultyUpgraded.value = false;
     _updateStats(w);
+
+    if (w == 1) {
+      HapticFeedback.mediumImpact();
+      showConfetti.value = true;
+    } else if (w == 0) {
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  void dismissConfetti() {
+    showConfetti.value = false;
   }
 
   Future<void> _updateStats(int w) async {
@@ -244,16 +281,20 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
         : _aiMoveGomoku();
   }
 
+  // ─── Effective difficulty (considering temp upgrade) ──
+  AiDifficulty get _effectiveDifficulty =>
+      tempAIDifficultyUpgraded.value ? AiDifficulty.hard : difficulty.value;
+
   // ─── Tic-Tac-Toe AI (Minimax) ──────────────────
 
   List<int>? _aiMoveTTT() {
     final empties = _getEmptyCells();
     if (empties.isEmpty) return null;
 
-    if (difficulty.value == AiDifficulty.easy) {
+    if (_effectiveDifficulty == AiDifficulty.easy) {
       return empties[math.Random().nextInt(empties.length)];
     }
-    if (difficulty.value == AiDifficulty.medium) {
+    if (_effectiveDifficulty == AiDifficulty.medium) {
       if (math.Random().nextDouble() < 0.35) {
         return empties[math.Random().nextInt(empties.length)];
       }
@@ -293,7 +334,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   // ─── Gomoku AI (Pattern scoring) ───────────────
 
   List<int>? _aiMoveGomoku() {
-    if (difficulty.value == AiDifficulty.easy) {
+    if (_effectiveDifficulty == AiDifficulty.easy) {
       final win = _findThreat(2, 5);
       if (win != null) return win;
       return _randomNearPieces();
@@ -305,7 +346,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     final block5 = _findThreat(1, 5);
     if (block5 != null) return block5;
 
-    if (difficulty.value == AiDifficulty.hard) {
+    if (_effectiveDifficulty == AiDifficulty.hard) {
       final win4 = _findOpenThreat(2, 4);
       if (win4 != null) return win4;
       final block4 = _findOpenThreat(1, 4);

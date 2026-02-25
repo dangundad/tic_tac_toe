@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -7,6 +8,7 @@ import 'package:tic_tac_toe/app/admob/ads_helper.dart';
 import 'package:tic_tac_toe/app/controllers/game_controller.dart';
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
 import 'package:tic_tac_toe/app/pages/game/widgets/board_painter.dart';
+import 'package:tic_tac_toe/app/widgets/confetti_overlay.dart';
 
 class GamePage extends GetView<GameController> {
   const GamePage({super.key});
@@ -168,6 +170,27 @@ class _GamePageContentState extends State<_GamePageContent>
           ),
         ),
         actions: [
+          Obx(() {
+            if (!widget.controller.tempAIDifficultyUpgraded.value) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: EdgeInsets.only(right: 4.w),
+              child: Chip(
+                label: Text(
+                  '⚡ Hard',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFE65100),
+                  ),
+                ),
+                backgroundColor: const Color(0xFFE65100).withValues(alpha: 0.12),
+                side: BorderSide(color: const Color(0xFFE65100)),
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+              ),
+            );
+          }),
           _AnimatedIconButton(
             icon: Icons.refresh_rounded,
             tooltip: 'restart'.tr,
@@ -180,42 +203,54 @@ class _GamePageContentState extends State<_GamePageContent>
         ],
       ),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            Expanded(
-              child: Column(
-                children: [
-                  SizedBox(height: 12.h),
-                  // Status bar entrance
-                  FadeTransition(
-                    opacity: _statusFade,
-                      child: SlideTransition(
-                        position: _statusSlide,
-                      child: _StatusBar(ctrl: widget.controller),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  // Board entrance
-                  Expanded(
-                    child: FadeTransition(
-                      opacity: _boardFade,
-                      child: ScaleTransition(
-                        scale: _boardScale,
-                        child: _BoardArea(
-                          ctrl: widget.controller,
-                          pulseCtrl: _pulseCtrl,
+            Column(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      SizedBox(height: 12.h),
+                      FadeTransition(
+                        opacity: _statusFade,
+                        child: SlideTransition(
+                          position: _statusSlide,
+                          child: _StatusBar(ctrl: widget.controller),
                         ),
                       ),
-                    ),
+                      SizedBox(height: 16.h),
+                      Expanded(
+                        child: FadeTransition(
+                          opacity: _boardFade,
+                          child: ScaleTransition(
+                            scale: _boardScale,
+                            child: _BoardArea(
+                              ctrl: widget.controller,
+                              pulseCtrl: _pulseCtrl,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                    ],
                   ),
-                  SizedBox(height: 12.h),
-                ],
-              ),
+                ),
+                BannerAdWidget(
+                  adUnitId: AdHelper.bannerAdUnitId,
+                  type: AdHelper.banner,
+                ),
+              ],
             ),
-            BannerAdWidget(
-              adUnitId: AdHelper.bannerAdUnitId,
-              type: AdHelper.banner,
-            ),
+            Obx(() {
+              if (!widget.controller.showConfetti.value) {
+                return const SizedBox.shrink();
+              }
+              return IgnorePointer(
+                child: ConfettiOverlay(
+                  onComplete: widget.controller.dismissConfetti,
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -406,7 +441,10 @@ class _ResultDialogState extends State<_ResultDialog>
           child: Text('play_again'.tr),
         ),
       ],
-    );
+    )
+        .animate()
+        .fadeIn(duration: 300.ms)
+        .slideY(begin: 0.2, curve: Curves.easeOutCubic);
   }
 }
 

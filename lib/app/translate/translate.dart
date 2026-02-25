@@ -105,6 +105,13 @@ class Languages extends Translations {
       'well_played': 'Well played!',
       'close_game': "It's a close one!",
       'play_again': 'Play Again',
+
+      // AI Upgrade
+      'ai_upgrade_title': 'AI Upgraded!',
+      'ai_upgrade_desc': 'AI will play at Hard difficulty for the next game.',
+      'ai_upgraded_badge': '⚡ AI Upgraded (Hard)',
+      'ai_upgrade_banner_title': 'Upgrade AI to Hard',
+      'ai_upgrade_banner_desc': 'Watch an ad to make AI use max difficulty for 1 game.',
     },
     'ko': {
       // 공통
@@ -198,6 +205,13 @@ class Languages extends Translations {
       'try_again': '다음번엔 잘 할 수 있어요!',
       'well_played': '잘 하셨어요!',
       'play_again': '다시 하기',
+
+      // AI 업그레이드
+      'ai_upgrade_title': 'AI 업그레이드!',
+      'ai_upgrade_desc': '다음 1판에서 AI가 최고 난이도로 플레이합니다.',
+      'ai_upgraded_badge': '⚡ AI 업그레이드됨 (하드)',
+      'ai_upgrade_banner_title': 'AI를 최고 난이도로 업그레이드',
+      'ai_upgrade_banner_desc': '광고 시청 시 다음 1판에서 AI가 최고 난이도로 동작합니다.',
     },
   };
 }

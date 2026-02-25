@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import 'package:tic_tac_toe/app/admob/ads_banner.dart';
 import 'package:tic_tac_toe/app/admob/ads_helper.dart';
+import 'package:tic_tac_toe/app/admob/ads_rewarded.dart';
 import 'package:tic_tac_toe/app/controllers/game_controller.dart';
 import 'package:tic_tac_toe/app/data/enums/ai_difficulty.dart';
 import 'package:tic_tac_toe/app/data/enums/game_mode.dart';
@@ -144,7 +145,17 @@ class _HomePageState extends State<_HomePageContent>
                       _staggered(3, const _SectionLabel(label: 'stats')),
                       SizedBox(height: 10.h),
                       _staggered(3, _StatsCards(ctrl: controller)),
-                      SizedBox(height: 32.h),
+                      SizedBox(height: 24.h),
+                      _staggered(
+                        4,
+                        Obx(() {
+                          if (controller.gameMode.value != GameMode.vsAI) {
+                            return const SizedBox.shrink();
+                          }
+                          return _AiUpgradeBanner(ctrl: controller);
+                        }),
+                      ),
+                      SizedBox(height: 12.h),
                       _staggered(4, _GradientStartButton(ctrl: controller)),
                       SizedBox(height: 16.h),
                     ],
@@ -686,5 +697,113 @@ class _OptionCardState extends State<_OptionCard>
         ),
       ),
     );
+  }
+}
+
+class _AiUpgradeBanner extends StatelessWidget {
+  final GameController ctrl;
+  const _AiUpgradeBanner({required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isAdReady = RewardedAdManager.to.isAdReady;
+
+    return Obx(() {
+      final upgraded = ctrl.tempAIDifficultyUpgraded.value;
+      final adReady = isAdReady.value;
+
+      if (upgraded) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFFE65100).withValues(alpha: 0.15),
+                const Color(0xFFBF360C).withValues(alpha: 0.08),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: const Color(0xFFE65100)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('⚡', style: TextStyle(fontSize: 18.sp)),
+              SizedBox(width: 8.w),
+              Text(
+                'ai_upgraded_badge'.tr,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFFE65100),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return GestureDetector(
+        onTap: adReady ? ctrl.requestAiUpgrade : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: adReady
+                ? cs.secondaryContainer.withValues(alpha: 0.6)
+                : cs.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: adReady
+                  ? cs.secondary.withValues(alpha: 0.5)
+                  : cs.outline.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.bolt_rounded,
+                size: 20.r,
+                color: adReady ? cs.secondary : cs.onSurfaceVariant,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ai_upgrade_banner_title'.tr,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                        color: adReady ? cs.onSecondaryContainer : cs.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      'ai_upgrade_banner_desc'.tr,
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: adReady
+                            ? cs.onSecondaryContainer.withValues(alpha: 0.75)
+                            : cs.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Icon(
+                Icons.play_circle_outline_rounded,
+                size: 20.r,
+                color: adReady ? cs.secondary : cs.onSurfaceVariant.withValues(alpha: 0.4),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 }
