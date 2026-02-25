@@ -9,22 +9,31 @@ import 'package:tic_tac_toe/app/data/enums/ai_difficulty.dart';
 import 'package:tic_tac_toe/app/data/enums/game_mode.dart';
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends GetView<GameController> {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  Widget build(BuildContext context) {
+    return _HomePageContent(controller: controller);
+  }
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _entranceCtrl;
+class _HomePageContent extends StatefulWidget {
+  final GameController controller;
 
-  // Stagger delays for each section
+  const _HomePageContent({required this.controller});
+
+  @override
+  State<_HomePageContent> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<_HomePageContent>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceCtrl;
+  late final Animation<double> _bgPulse;
   static const _sections = 5;
-  late List<Animation<double>> _fadeAnims;
-  late List<Animation<Offset>> _slideAnims;
-  late Animation<double> _headerScale;
+  late final List<Animation<double>> _fade;
+  late final List<Animation<Offset>> _slide;
 
   @override
   void initState() {
@@ -32,19 +41,14 @@ class _HomePageState extends State<HomePage>
     _entranceCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
+    )..forward();
+
+    _bgPulse = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceCtrl, curve: Curves.easeOut),
     );
 
-    // Header: elasticOut scale
-    _headerScale = Tween<double>(begin: 0.6, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _entranceCtrl,
-        curve: const Interval(0.0, 0.45, curve: Curves.elasticOut),
-      ),
-    );
-
-    // Each section fades + slides up with stagger
-    _fadeAnims = List.generate(_sections, (i) {
-      final start = 0.15 + i * 0.12;
+    _fade = List.generate(_sections, (i) {
+      final start = 0.12 + i * 0.12;
       final end = (start + 0.3).clamp(0.0, 1.0);
       return Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(
@@ -53,22 +57,16 @@ class _HomePageState extends State<HomePage>
         ),
       );
     });
-
-    _slideAnims = List.generate(_sections, (i) {
-      final start = 0.15 + i * 0.12;
+    _slide = List.generate(_sections, (i) {
+      final start = 0.12 + i * 0.12;
       final end = (start + 0.3).clamp(0.0, 1.0);
-      return Tween<Offset>(
-        begin: const Offset(0, 0.4),
-        end: Offset.zero,
-      ).animate(
+      return Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(
         CurvedAnimation(
           parent: _entranceCtrl,
           curve: Interval(start, end, curve: Curves.easeOut),
         ),
       );
     });
-
-    _entranceCtrl.forward();
   }
 
   @override
@@ -79,104 +77,135 @@ class _HomePageState extends State<HomePage>
 
   Widget _staggered(int index, Widget child) {
     return FadeTransition(
-      opacity: _fadeAnims[index],
-      child: SlideTransition(
-        position: _slideAnims[index],
-        child: child,
-      ),
+      opacity: _fade[index],
+      child: SlideTransition(position: _slide[index], child: child),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final controller = Get.find<GameController>();
+    final controller = widget.controller;
 
     return Scaffold(
-      backgroundColor: cs.surface,
-      appBar: AppBar(
-        title: ScaleTransition(
-          scale: _headerScale,
-          child: Text('app_name'.tr),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              cs.primary.withValues(alpha: 0.12),
+              cs.surface,
+              cs.secondaryContainer.withValues(alpha: 0.2),
+            ],
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _staggered(
-                      0,
-                      _SectionLabel(label: 'game_type'.tr),
-                    ),
-                    SizedBox(height: 10.h),
-                    _staggered(
-                      0,
-                      _GameTypeSelector(ctrl: controller),
-                    ),
-                    SizedBox(height: 24.h),
-                    _staggered(
-                      1,
-                      _SectionLabel(label: 'game_mode'.tr),
-                    ),
-                    SizedBox(height: 10.h),
-                    _staggered(
-                      1,
-                      _GameModeSelector(ctrl: controller),
-                    ),
-                    SizedBox(height: 24.h),
-                    _staggered(
-                      2,
-                      Obx(() {
-                        if (controller.gameMode.value != GameMode.vsAI) {
-                          return const SizedBox.shrink();
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _SectionLabel(label: 'difficulty'.tr),
-                            SizedBox(height: 10.h),
-                            _DifficultySelector(ctrl: controller),
-                            SizedBox(height: 24.h),
-                          ],
-                        );
-                      }),
-                    ),
-                    _staggered(
-                      3,
-                      _SectionLabel(label: 'stats'.tr),
-                    ),
-                    SizedBox(height: 10.h),
-                    _staggered(
-                      3,
-                      _StatsCards(ctrl: controller),
-                    ),
-                    SizedBox(height: 32.h),
-                    _staggered(
-                      4,
-                      _AnimatedStartButton(ctrl: controller),
-                    ),
-                    SizedBox(height: 16.h),
-                  ],
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(16.r),
+                child: ScaleTransition(
+                  scale: _bgPulse,
+                  child: _Header(),
                 ),
               ),
-            ),
-            BannerAdWidget(
-              adUnitId: AdHelper.bannerAdUnitId,
-              type: AdHelper.banner,
-            ),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _staggered(0, const _SectionLabel(label: 'game_type')),
+                      SizedBox(height: 10.h),
+                      _staggered(0, _GameTypeSelector(ctrl: controller)),
+                      SizedBox(height: 24.h),
+                      _staggered(1, const _SectionLabel(label: 'game_mode')),
+                      SizedBox(height: 10.h),
+                      _staggered(1, _GameModeSelector(ctrl: controller)),
+                      SizedBox(height: 24.h),
+                      _staggered(
+                        2,
+                        Obx(() {
+                          if (controller.gameMode.value != GameMode.vsAI) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _SectionLabel(label: 'difficulty'),
+                              SizedBox(height: 10.h),
+                              _DifficultySelector(ctrl: controller),
+                              SizedBox(height: 24.h),
+                            ],
+                          );
+                        }),
+                      ),
+                      _staggered(3, const _SectionLabel(label: 'stats')),
+                      SizedBox(height: 10.h),
+                      _staggered(3, _StatsCards(ctrl: controller)),
+                      SizedBox(height: 32.h),
+                      _staggered(4, _AnimatedStartButton(ctrl: controller)),
+                      SizedBox(height: 16.h),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                color: cs.surface.withValues(alpha: 0.9),
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: 12.w,
+                      right: 12.w,
+                      top: 8.h,
+                      bottom: 10.h,
+                    ),
+                    child: BannerAdWidget(
+                      adUnitId: AdHelper.bannerAdUnitId,
+                      type: AdHelper.banner,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ─── Animated Start Button ────────────────────────────────
+class _Header extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(18.r),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        children: [
+          Text('🎯', style: TextStyle(fontSize: 30.sp)),
+          SizedBox(width: 10.w),
+          Text(
+            'app_name'.tr,
+            style: TextStyle(
+              fontSize: 28.sp,
+              fontWeight: FontWeight.w900,
+              color: cs.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _AnimatedStartButton extends StatefulWidget {
   final GameController ctrl;
@@ -188,8 +217,8 @@ class _AnimatedStartButton extends StatefulWidget {
 
 class _AnimatedStartButtonState extends State<_AnimatedStartButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _pressCtrl;
-  late Animation<double> _scaleAnim;
+  late final AnimationController _pressCtrl;
+  late final Animation<double> _scaleAnim;
 
   @override
   void initState() {
@@ -225,13 +254,10 @@ class _AnimatedStartButtonState extends State<_AnimatedStartButton>
           width: double.infinity,
           height: 54.h,
           child: FilledButton(
-            onPressed: null, // handled by GestureDetector
+            onPressed: null,
             child: Text(
               'start_game'.tr,
-              style: TextStyle(
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w800,
-              ),
+              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w800),
             ),
           ),
         ),
@@ -239,8 +265,6 @@ class _AnimatedStartButtonState extends State<_AnimatedStartButton>
     );
   }
 }
-
-// ─── Section Label ────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   final String label;
@@ -250,7 +274,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Text(
-      label,
+      label.tr,
       style: TextStyle(
         fontSize: 13.sp,
         fontWeight: FontWeight.w700,
@@ -261,37 +285,31 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-// ─── Game Type Selector ───────────────────────────────────
-
 class _GameTypeSelector extends StatelessWidget {
   final GameController ctrl;
   const _GameTypeSelector({required this.ctrl});
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      return Row(
-        children: [
-          _OptionCard(
-            label: 'tic_tac_toe'.tr,
-            icon: '✕',
-            isSelected: ctrl.gameType.value == GameType.tictactoe,
-            onTap: () => ctrl.gameType.value = GameType.tictactoe,
-          ),
-          SizedBox(width: 12.w),
-          _OptionCard(
-            label: 'gomoku'.tr,
-            icon: '⚫',
-            isSelected: ctrl.gameType.value == GameType.gomoku,
-            onTap: () => ctrl.gameType.value = GameType.gomoku,
-          ),
-        ],
-      );
-    });
+    return Row(
+      children: [
+        _OptionCard(
+          label: 'tic_tac_toe'.tr,
+          icon: '🎲',
+          isSelected: ctrl.gameType.value == GameType.tictactoe,
+          onTap: () => ctrl.gameType.value = GameType.tictactoe,
+        ),
+        SizedBox(width: 12.w),
+        _OptionCard(
+          label: 'gomoku'.tr,
+          icon: '⚫',
+          isSelected: ctrl.gameType.value == GameType.gomoku,
+          onTap: () => ctrl.gameType.value = GameType.gomoku,
+        ),
+      ],
+    );
   }
 }
-
-// ─── Game Mode Selector ───────────────────────────────────
 
 class _GameModeSelector extends StatelessWidget {
   final GameController ctrl;
@@ -299,29 +317,25 @@ class _GameModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      return Row(
-        children: [
-          _OptionCard(
-            label: 'vs_ai'.tr,
-            icon: '🤖',
-            isSelected: ctrl.gameMode.value == GameMode.vsAI,
-            onTap: () => ctrl.gameMode.value = GameMode.vsAI,
-          ),
-          SizedBox(width: 12.w),
-          _OptionCard(
-            label: 'vs_friend'.tr,
-            icon: '👥',
-            isSelected: ctrl.gameMode.value == GameMode.vsFriend,
-            onTap: () => ctrl.gameMode.value = GameMode.vsFriend,
-          ),
-        ],
-      );
-    });
+    return Row(
+      children: [
+        _OptionCard(
+          label: 'vs_ai'.tr,
+          icon: '🤖',
+          isSelected: ctrl.gameMode.value == GameMode.vsAI,
+          onTap: () => ctrl.gameMode.value = GameMode.vsAI,
+        ),
+        SizedBox(width: 12.w),
+        _OptionCard(
+          label: 'vs_friend'.tr,
+          icon: '👥',
+          isSelected: ctrl.gameMode.value == GameMode.vsFriend,
+          onTap: () => ctrl.gameMode.value = GameMode.vsFriend,
+        ),
+      ],
+    );
   }
 }
-
-// ─── Difficulty Selector ──────────────────────────────────
 
 class _DifficultySelector extends StatelessWidget {
   final GameController ctrl;
@@ -403,8 +417,6 @@ class _DiffChip extends StatelessWidget {
   }
 }
 
-// ─── Stats Cards ──────────────────────────────────────────
-
 class _StatsCards extends StatelessWidget {
   final GameController ctrl;
   const _StatsCards({required this.ctrl});
@@ -428,23 +440,11 @@ class _StatsCards extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _AnimatedStatNumber(
-                    value: wins,
-                    label: 'wins'.tr,
-                    color: cs.primary,
-                  ),
+                  _AnimatedStatNumber(value: wins, label: 'wins'.tr, color: cs.primary),
                   Container(width: 1, height: 40.h, color: cs.outlineVariant),
-                  _AnimatedStatNumber(
-                    value: draws,
-                    label: 'draws'.tr,
-                    color: cs.secondary,
-                  ),
+                  _AnimatedStatNumber(value: draws, label: 'draws'.tr, color: cs.secondary),
                   Container(width: 1, height: 40.h, color: cs.outlineVariant),
-                  _AnimatedStatNumber(
-                    value: losses,
-                    label: 'losses'.tr,
-                    color: cs.error,
-                  ),
+                  _AnimatedStatNumber(value: losses, label: 'losses'.tr, color: cs.error),
                 ],
               ),
               SizedBox(height: 12.h),
@@ -472,12 +472,11 @@ class _StatsCards extends StatelessWidget {
   }
 }
 
-// ─── Animated Stat Number (AnimatedSwitcher) ──────────────
-
 class _AnimatedStatNumber extends StatelessWidget {
   final int value;
   final String label;
   final Color color;
+
   const _AnimatedStatNumber({
     required this.value,
     required this.label,
@@ -514,8 +513,6 @@ class _AnimatedStatNumber extends StatelessWidget {
     );
   }
 }
-
-// ─── Option Card ──────────────────────────────────────────
 
 class _OptionCard extends StatefulWidget {
   final String label;
@@ -576,9 +573,7 @@ class _OptionCardState extends State<_OptionCard>
             curve: Curves.easeOut,
             padding: EdgeInsets.symmetric(vertical: 16.h),
             decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? cs.primaryContainer
-                  : cs.surfaceContainerHigh,
+              color: widget.isSelected ? cs.primaryContainer : cs.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
                 color: widget.isSelected ? cs.primary : Colors.transparent,
@@ -596,26 +591,17 @@ class _OptionCardState extends State<_OptionCard>
             ),
             child: Column(
               children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (child, anim) => ScaleTransition(
-                    scale: anim,
-                    child: child,
-                  ),
-                  child: Text(
-                    widget.icon,
-                    key: ValueKey(widget.icon),
-                    style: TextStyle(fontSize: 24.sp),
-                  ),
+                Text(
+                  widget.icon,
+                  style: TextStyle(fontSize: 24.sp),
                 ),
                 SizedBox(height: 6.h),
                 Text(
                   widget.label,
                   style: TextStyle(
                     fontSize: 13.sp,
-                    fontWeight: widget.isSelected
-                        ? FontWeight.w700
-                        : FontWeight.w500,
+                    fontWeight:
+                        widget.isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: widget.isSelected ? cs.primary : cs.onSurface,
                   ),
                 ),

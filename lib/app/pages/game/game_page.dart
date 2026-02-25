@@ -8,14 +8,25 @@ import 'package:tic_tac_toe/app/controllers/game_controller.dart';
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
 import 'package:tic_tac_toe/app/pages/game/widgets/board_painter.dart';
 
-class GamePage extends StatefulWidget {
+class GamePage extends GetView<GameController> {
   const GamePage({super.key});
 
   @override
-  State<GamePage> createState() => _GamePageState();
+  Widget build(BuildContext context) {
+    return _GamePageContent(controller: controller);
+  }
 }
 
-class _GamePageState extends State<GamePage>
+class _GamePageContent extends StatefulWidget {
+  final GameController controller;
+
+  const _GamePageContent({required this.controller});
+
+  @override
+  State<_GamePageContent> createState() => _GamePageContentState();
+}
+
+class _GamePageContentState extends State<_GamePageContent>
     with SingleTickerProviderStateMixin {
   // Entrance animation for status bar + board
   late AnimationController _entranceCtrl;
@@ -28,7 +39,6 @@ class _GamePageState extends State<GamePage>
   late AnimationController _pulseCtrl;
 
   Worker? _phaseWorker;
-  Worker? _winnerWorker;
 
   @override
   void initState() {
@@ -74,9 +84,7 @@ class _GamePageState extends State<GamePage>
 
     _entranceCtrl.forward();
 
-    final ctrl = Get.find<GameController>();
-
-    _phaseWorker = ever(ctrl.phase, (phase) {
+    _phaseWorker = ever(widget.controller.phase, (phase) {
       if (phase == GamePhase.gameOver) {
         // Start pulsing when game ends
         _pulseCtrl.repeat(reverse: true);
@@ -95,19 +103,17 @@ class _GamePageState extends State<GamePage>
   @override
   void dispose() {
     _phaseWorker?.dispose();
-    _winnerWorker?.dispose();
     _entranceCtrl.dispose();
     _pulseCtrl.dispose();
     super.dispose();
   }
 
   void _showResultDialog() {
-    final ctrl = Get.find<GameController>();
     final cs = Theme.of(context).colorScheme;
 
-    final w = ctrl.winner.value;
-    final isTTT = ctrl.gameType.value == GameType.tictactoe;
-    final isVsAI = ctrl.isVsAI;
+    final w = widget.controller.winner.value;
+    final isTTT = widget.controller.gameType.value == GameType.tictactoe;
+    final isVsAI = widget.controller.isVsAI;
 
     String title;
     String subtitle;
@@ -128,15 +134,16 @@ class _GamePageState extends State<GamePage>
     }
 
     Get.dialog(
-      _ResultDialog(
+        _ResultDialog(
         emoji: w == 1 ? '🎉' : w == 2 ? '😔' : '🤝',
         title: title,
         subtitle: subtitle,
         titleColor: color,
         isTTT: isTTT,
+        controller: widget.controller,
         onPlayAgain: () {
           Get.back();
-          ctrl.restartGame();
+          widget.controller.restartGame();
         },
         onHome: () {
           Get.back();
@@ -149,14 +156,13 @@ class _GamePageState extends State<GamePage>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final ctrl = Get.find<GameController>();
 
     return Scaffold(
       backgroundColor: cs.surface,
       appBar: AppBar(
         title: Obx(
           () => Text(
-            ctrl.gameType.value == GameType.tictactoe
+            widget.controller.gameType.value == GameType.tictactoe
                 ? 'tic_tac_toe'.tr
                 : 'gomoku'.tr,
           ),
@@ -168,7 +174,7 @@ class _GamePageState extends State<GamePage>
             onTap: () {
               _pulseCtrl.stop();
               _pulseCtrl.reset();
-              ctrl.restartGame();
+              widget.controller.restartGame();
             },
           ),
         ],
@@ -183,9 +189,9 @@ class _GamePageState extends State<GamePage>
                   // Status bar entrance
                   FadeTransition(
                     opacity: _statusFade,
-                    child: SlideTransition(
-                      position: _statusSlide,
-                      child: _StatusBar(ctrl: ctrl),
+                      child: SlideTransition(
+                        position: _statusSlide,
+                      child: _StatusBar(ctrl: widget.controller),
                     ),
                   ),
                   SizedBox(height: 16.h),
@@ -196,7 +202,7 @@ class _GamePageState extends State<GamePage>
                       child: ScaleTransition(
                         scale: _boardScale,
                         child: _BoardArea(
-                          ctrl: ctrl,
+                          ctrl: widget.controller,
                           pulseCtrl: _pulseCtrl,
                         ),
                       ),
@@ -280,6 +286,7 @@ class _ResultDialog extends StatefulWidget {
   final String subtitle;
   final Color titleColor;
   final bool isTTT;
+  final GameController controller;
   final VoidCallback onPlayAgain;
   final VoidCallback onHome;
 
@@ -289,6 +296,7 @@ class _ResultDialog extends StatefulWidget {
     required this.subtitle,
     required this.titleColor,
     required this.isTTT,
+    required this.controller,
     required this.onPlayAgain,
     required this.onHome,
   });
@@ -381,7 +389,7 @@ class _ResultDialogState extends State<_ResultDialog>
                     ),
                   ),
                   SizedBox(height: 20.h),
-                  _StatsRow(isTTT: widget.isTTT),
+                  _StatsRow(ctrl: widget.controller, isTTT: widget.isTTT),
                 ],
               ),
             ),
@@ -607,12 +615,12 @@ class _BoardArea extends StatelessWidget {
 
 class _StatsRow extends StatelessWidget {
   final bool isTTT;
-  const _StatsRow({required this.isTTT});
+  final GameController ctrl;
+  const _StatsRow({required this.ctrl, required this.isTTT});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final ctrl = GameController.to;
 
     return Obx(() {
       final w = isTTT ? ctrl.tttWins.value : ctrl.goWins.value;
