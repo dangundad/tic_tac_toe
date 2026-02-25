@@ -145,7 +145,7 @@ class _HomePageState extends State<_HomePageContent>
                       SizedBox(height: 10.h),
                       _staggered(3, _StatsCards(ctrl: controller)),
                       SizedBox(height: 32.h),
-                      _staggered(4, _AnimatedStartButton(ctrl: controller)),
+                      _staggered(4, _GradientStartButton(ctrl: controller)),
                       SizedBox(height: 16.h),
                     ],
                   ),
@@ -185,20 +185,34 @@ class _Header extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(18.r),
       decoration: BoxDecoration(
-        color: cs.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            cs.primaryContainer,
+            cs.secondaryContainer,
+          ],
+        ),
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: cs.outline.withValues(alpha: 0.22)),
+        boxShadow: [
+          BoxShadow(
+            color: cs.primary.withValues(alpha: 0.1),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Text('🎯', style: TextStyle(fontSize: 30.sp)),
+          Text('❌', style: TextStyle(fontSize: 30.sp)),
           SizedBox(width: 10.w),
           Text(
             'app_name'.tr,
             style: TextStyle(
               fontSize: 28.sp,
               fontWeight: FontWeight.w900,
-              color: cs.onSurface,
+              color: cs.onPrimaryContainer,
             ),
           ),
         ],
@@ -207,15 +221,15 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _AnimatedStartButton extends StatefulWidget {
+class _GradientStartButton extends StatefulWidget {
   final GameController ctrl;
-  const _AnimatedStartButton({required this.ctrl});
+  const _GradientStartButton({required this.ctrl});
 
   @override
-  State<_AnimatedStartButton> createState() => _AnimatedStartButtonState();
+  State<_GradientStartButton> createState() => _GradientStartButtonState();
 }
 
-class _AnimatedStartButtonState extends State<_AnimatedStartButton>
+class _GradientStartButtonState extends State<_GradientStartButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pressCtrl;
   late final Animation<double> _scaleAnim;
@@ -228,7 +242,7 @@ class _AnimatedStartButtonState extends State<_AnimatedStartButton>
       duration: const Duration(milliseconds: 100),
       reverseDuration: const Duration(milliseconds: 200),
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.95).animate(
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.96).animate(
       CurvedAnimation(parent: _pressCtrl, curve: Curves.easeIn),
     );
   }
@@ -241,6 +255,7 @@ class _AnimatedStartButtonState extends State<_AnimatedStartButton>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTapDown: (_) => _pressCtrl.forward(),
       onTapUp: (_) {
@@ -250,14 +265,39 @@ class _AnimatedStartButtonState extends State<_AnimatedStartButton>
       onTapCancel: () => _pressCtrl.reverse(),
       child: ScaleTransition(
         scale: _scaleAnim,
-        child: SizedBox(
+        child: Container(
           width: double.infinity,
-          height: 54.h,
-          child: FilledButton(
-            onPressed: null,
-            child: Text(
-              'start_game'.tr,
-              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w800),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [cs.primary, cs.tertiary],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: cs.primary.withValues(alpha: 0.35),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('▶', style: TextStyle(fontSize: 18.sp, color: cs.onPrimary)),
+                SizedBox(width: 10.w),
+                Text(
+                  'start_game'.tr,
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -291,11 +331,11 @@ class _GameTypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Obx(() => Row(
       children: [
         _OptionCard(
           label: 'tic_tac_toe'.tr,
-          icon: '🎲',
+          icon: '❌',
           isSelected: ctrl.gameType.value == GameType.tictactoe,
           onTap: () => ctrl.gameType.value = GameType.tictactoe,
         ),
@@ -307,7 +347,7 @@ class _GameTypeSelector extends StatelessWidget {
           onTap: () => ctrl.gameType.value = GameType.gomoku,
         ),
       ],
-    );
+    ));
   }
 }
 
@@ -317,7 +357,7 @@ class _GameModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Obx(() => Row(
       children: [
         _OptionCard(
           label: 'vs_ai'.tr,
@@ -333,7 +373,7 @@ class _GameModeSelector extends StatelessWidget {
           onTap: () => ctrl.gameMode.value = GameMode.vsFriend,
         ),
       ],
-    );
+    ));
   }
 }
 
@@ -571,40 +611,75 @@ class _OptionCardState extends State<_OptionCard>
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
-            padding: EdgeInsets.symmetric(vertical: 16.h),
+            padding: EdgeInsets.symmetric(vertical: 18.h),
             decoration: BoxDecoration(
-              color: widget.isSelected ? cs.primaryContainer : cs.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12.r),
+              gradient: widget.isSelected
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        cs.primaryContainer,
+                        cs.secondaryContainer.withValues(alpha: 0.7),
+                      ],
+                    )
+                  : LinearGradient(
+                      colors: [cs.surfaceContainerHigh, cs.surfaceContainerHigh],
+                    ),
+              borderRadius: BorderRadius.circular(16.r),
               border: Border.all(
-                color: widget.isSelected ? cs.primary : Colors.transparent,
-                width: 2,
+                color: widget.isSelected
+                    ? cs.primary
+                    : cs.outline.withValues(alpha: 0.2),
+                width: widget.isSelected ? 2 : 1,
               ),
               boxShadow: widget.isSelected
                   ? [
                       BoxShadow(
                         color: cs.primary.withValues(alpha: 0.25),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                        spreadRadius: 1,
                       ),
                     ]
-                  : [],
+                  : [
+                      BoxShadow(
+                        color: cs.shadow.withValues(alpha: 0.06),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Column(
               children: [
-                Text(
-                  widget.icon,
-                  style: TextStyle(fontSize: 24.sp),
+                AnimatedScale(
+                  scale: widget.isSelected ? 1.15 : 1.0,
+                  duration: const Duration(milliseconds: 220),
+                  child: Text(
+                    widget.icon,
+                    style: TextStyle(fontSize: 26.sp),
+                  ),
                 ),
-                SizedBox(height: 6.h),
+                SizedBox(height: 8.h),
                 Text(
                   widget.label,
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight:
-                        widget.isSelected ? FontWeight.w700 : FontWeight.w500,
+                        widget.isSelected ? FontWeight.w800 : FontWeight.w500,
                     color: widget.isSelected ? cs.primary : cs.onSurface,
                   ),
                 ),
+                if (widget.isSelected) ...[
+                  SizedBox(height: 4.h),
+                  Container(
+                    width: 24.w,
+                    height: 3.h,
+                    decoration: BoxDecoration(
+                      color: cs.primary,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
