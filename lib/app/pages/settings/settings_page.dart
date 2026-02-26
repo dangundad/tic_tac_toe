@@ -20,6 +20,20 @@ class SettingsPage extends GetView<SettingController> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_loc('settings', 'Settings')),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: Container(
+            height: 3,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Get.theme.colorScheme.primary,
+                  Get.theme.colorScheme.tertiary,
+                ],
+              ),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: _loc('open_history', 'History'),

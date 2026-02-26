@@ -169,6 +169,22 @@ class _GamePageContentState extends State<_GamePageContent>
                 : 'gomoku'.tr,
           ),
         ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: Builder(
+            builder: (context) {
+              final cs = Theme.of(context).colorScheme;
+              return Container(
+                height: 3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [cs.primary, cs.tertiary],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
         actions: [
           Obx(() {
             if (!widget.controller.tempAIDifficultyUpgraded.value) {
