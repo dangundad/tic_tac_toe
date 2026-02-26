@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:tic_tac_toe/app/admob/ads_banner.dart';
 import 'package:tic_tac_toe/app/admob/ads_helper.dart';
@@ -214,17 +215,68 @@ class _Header extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          Text('❌', style: TextStyle(fontSize: 30.sp)),
-          SizedBox(width: 10.w),
-          Text(
-            'app_name'.tr,
-            style: TextStyle(
-              fontSize: 28.sp,
-              fontWeight: FontWeight.w900,
-              color: cs.onPrimaryContainer,
+          // AppBar gradient accent bar
+          Container(
+            height: 3,
+            margin: EdgeInsets.only(bottom: 16.h),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [cs.primary, cs.tertiary],
+              ),
+              borderRadius: BorderRadius.circular(2.r),
             ),
+          ),
+          Row(
+            children: [
+              // Hero icon container (패턴 B)
+              Container(
+                width: 56.r,
+                height: 56.r,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      cs.primaryContainer,
+                      cs.primaryContainer.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    LucideIcons.grid3x3,
+                    size: 30.r,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'app_name'.tr,
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.w900,
+                        color: cs.onPrimaryContainer,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      'Minimax AI · 2-Player',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: cs.onPrimaryContainer.withValues(alpha: 0.6),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -298,7 +350,7 @@ class _GradientStartButtonState extends State<_GradientStartButton>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('▶', style: TextStyle(fontSize: 18.sp, color: cs.onPrimary)),
+                Icon(LucideIcons.play, size: 22.r, color: cs.onPrimary),
                 SizedBox(width: 10.w),
                 Text(
                   'start_game'.tr,
@@ -324,14 +376,31 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Text(
-      label.tr,
-      style: TextStyle(
-        fontSize: 13.sp,
-        fontWeight: FontWeight.w700,
-        color: cs.onSurfaceVariant,
-        letterSpacing: 0.8,
-      ),
+    return Row(
+      children: [
+        Container(
+          width: 3.w,
+          height: 14.h,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [cs.primary, cs.tertiary],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(2.r),
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Text(
+          label.tr,
+          style: TextStyle(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w700,
+            color: cs.onSurfaceVariant,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -483,7 +552,25 @@ class _StatsCards extends StatelessWidget {
       final total = wins + losses + draws;
       final winRate = total == 0 ? 0.0 : wins / total;
 
-      return Card(
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              cs.primaryContainer,
+              cs.secondaryContainer.withValues(alpha: 0.7),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: cs.primary.withValues(alpha: 0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
         child: Padding(
           padding: EdgeInsets.all(16.r),
           child: Column(
@@ -492,9 +579,9 @@ class _StatsCards extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _AnimatedStatNumber(value: wins, label: 'wins'.tr, color: cs.primary),
-                  Container(width: 1, height: 40.h, color: cs.outlineVariant),
+                  Container(width: 1, height: 40.h, color: cs.outlineVariant.withValues(alpha: 0.5)),
                   _AnimatedStatNumber(value: draws, label: 'draws'.tr, color: cs.secondary),
-                  Container(width: 1, height: 40.h, color: cs.outlineVariant),
+                  Container(width: 1, height: 40.h, color: cs.outlineVariant.withValues(alpha: 0.5)),
                   _AnimatedStatNumber(value: losses, label: 'losses'.tr, color: cs.error),
                 ],
               ),
@@ -513,7 +600,7 @@ class _StatsCards extends StatelessWidget {
                 total == 0
                     ? 'no_games_yet'.tr
                     : '${'win_rate'.tr}: ${(winRate * 100).toStringAsFixed(1)}%',
-                style: TextStyle(fontSize: 12.sp, color: cs.onSurfaceVariant),
+                style: TextStyle(fontSize: 12.sp, color: cs.onPrimaryContainer.withValues(alpha: 0.75)),
               ),
             ],
           ),
