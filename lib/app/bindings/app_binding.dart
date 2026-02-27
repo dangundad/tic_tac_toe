@@ -7,6 +7,7 @@ import 'package:tic_tac_toe/app/services/activity_log_service.dart';
 import 'package:tic_tac_toe/app/controllers/history_controller.dart';
 import 'package:tic_tac_toe/app/controllers/stats_controller.dart';
 
+import 'package:tic_tac_toe/app/services/app_rating_service.dart';
 import 'package:tic_tac_toe/app/services/purchase_service.dart';
 import 'package:tic_tac_toe/app/controllers/premium_controller.dart';
 
@@ -43,6 +44,10 @@ class AppBinding implements Bindings {
 
     if (!Get.isRegistered<StatsController>()) {
       Get.lazyPut(() => StatsController());
+    }
+
+    if (!Get.isRegistered<AppRatingService>()) {
+      Get.put(AppRatingService(), permanent: true);
     }
   }
 }
