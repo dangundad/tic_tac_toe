@@ -7,11 +7,10 @@ import 'package:get/get.dart';
 import 'package:tic_tac_toe/app/admob/ads_rewarded.dart';
 import 'package:tic_tac_toe/app/data/enums/ai_difficulty.dart';
 import 'package:tic_tac_toe/app/data/enums/game_mode.dart';
+import 'package:tic_tac_toe/app/data/enums/game_status.dart';
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
 import 'package:tic_tac_toe/app/routes/app_pages.dart';
 import 'package:tic_tac_toe/app/services/hive_service.dart';
-
-enum GamePhase { idle, playing, gameOver }
 
 class GameController extends GetxController with GetTickerProviderStateMixin {
   static GameController get to => Get.find();
@@ -34,7 +33,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   // Game state
   final board = <List<int>>[].obs;
   final currentPlayer = 1.obs;
-  final phase = GamePhase.idle.obs;
+  final status = GameStatus.idle.obs;
   final winner = 0.obs; // 0=draw/none, 1=player1, 2=player2
   final winLine = Rx<List<int>?>(null); // [r1,c1,r2,c2]
   final lastPlaced = Rx<List<int>?>(null);
@@ -53,8 +52,8 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
 
   int get gridSize => gameType.value == GameType.tictactoe ? 3 : 15;
   int get winLen => gameType.value == GameType.tictactoe ? 3 : 5;
-  bool get isPlaying => phase.value == GamePhase.playing;
-  bool get isGameOver => phase.value == GamePhase.gameOver;
+  bool get isPlaying => status.value == GameStatus.playing;
+  bool get isGameOver => status.value == GameStatus.gameOver;
   bool get isVsAI => gameMode.value == GameMode.vsAI;
 
   @override
@@ -90,7 +89,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   void startGame() {
     _initBoard();
     currentPlayer.value = 1;
-    phase.value = GamePhase.playing;
+    status.value = GameStatus.playing;
     winner.value = 0;
     winLine.value = null;
     lastPlaced.value = null;
@@ -103,7 +102,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   void restartGame() {
     _initBoard();
     currentPlayer.value = 1;
-    phase.value = GamePhase.playing;
+    status.value = GameStatus.playing;
     winner.value = 0;
     winLine.value = null;
     lastPlaced.value = null;
@@ -174,7 +173,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   }
 
   void _endGame(int w, List<int>? line) {
-    phase.value = GamePhase.gameOver;
+    status.value = GameStatus.gameOver;
     winner.value = w;
     winLine.value = line;
     if (line != null) winAnim.forward();
@@ -300,12 +299,12 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
       }
     }
 
-    // Minimax for hard (+ medium smart)
+    // Minimax with alpha-beta pruning for hard (+ medium smart)
     int bestVal = -1000;
     List<int> bestMove = empties.first;
     for (final cell in empties) {
       board[cell[0]][cell[1]] = 2;
-      final val = _minimaxTTT(0, false);
+      final val = _minimaxTTT(0, false, -1000, 1000);
       board[cell[0]][cell[1]] = 0;
       if (val > bestVal) {
         bestVal = val;
@@ -315,20 +314,36 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     return bestMove;
   }
 
-  int _minimaxTTT(int depth, bool isMax) {
+  int _minimaxTTT(int depth, bool isMax, int alpha, int beta) {
     if (_findWinLine(2) != null) return 10 - depth;
     if (_findWinLine(1) != null) return depth - 10;
     final empties = _getEmptyCells();
     if (empties.isEmpty) return 0;
 
-    int best = isMax ? -100 : 100;
-    for (final cell in empties) {
-      board[cell[0]][cell[1]] = isMax ? 2 : 1;
-      final val = _minimaxTTT(depth + 1, !isMax);
-      board[cell[0]][cell[1]] = 0;
-      best = isMax ? math.max(best, val) : math.min(best, val);
+    int a = alpha, b = beta;
+    if (isMax) {
+      int best = -100;
+      for (final cell in empties) {
+        board[cell[0]][cell[1]] = 2;
+        final val = _minimaxTTT(depth + 1, false, a, b);
+        board[cell[0]][cell[1]] = 0;
+        best = math.max(best, val);
+        a = math.max(a, best);
+        if (b <= a) break; // Beta cutoff
+      }
+      return best;
+    } else {
+      int best = 100;
+      for (final cell in empties) {
+        board[cell[0]][cell[1]] = 1;
+        final val = _minimaxTTT(depth + 1, true, a, b);
+        board[cell[0]][cell[1]] = 0;
+        best = math.min(best, val);
+        b = math.min(b, best);
+        if (b <= a) break; // Alpha cutoff
+      }
+      return best;
     }
-    return best;
   }
 
   // ─── Gomoku AI (Pattern scoring) ───────────────
@@ -351,6 +366,12 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
       if (win4 != null) return win4;
       final block4 = _findOpenThreat(1, 4);
       if (block4 != null) return block4;
+
+      // Check for open-3 threats (double open-3 is nearly unstoppable)
+      final win3 = _findOpenThreat(2, 3);
+      if (win3 != null) return win3;
+      final block3 = _findOpenThreat(1, 3);
+      if (block3 != null) return block3;
     }
 
     return _bestScoredMove();
@@ -437,6 +458,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
 
   int _scoreCell(int r, int c, int player) {
     int score = 0;
+    final n = gridSize;
     const dirs = [
       [0, 1],
       [1, 0],
@@ -445,13 +467,31 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     ];
     board[r][c] = player;
     for (final dir in dirs) {
-      final count = _countLine(r, c, dir[0], dir[1], player);
+      final dr = dir[0], dc = dir[1];
+      final count = _countLine(r, c, dr, dc, player);
+
+      // Check openness (how many ends are unblocked)
+      final backCount = _countInDir(r, c, -dr, -dc, player);
+      final startR = r - backCount * dr;
+      final startC = c - backCount * dc;
+      final endR = startR + (count - 1) * dr;
+      final endC = startC + (count - 1) * dc;
+      final bR = startR - dr, bC = startC - dc;
+      final aR = endR + dr, aC = endC + dc;
+      final openBefore =
+          bR >= 0 && bR < n && bC >= 0 && bC < n && board[bR][bC] == 0;
+      final openAfter =
+          aR >= 0 && aR < n && aC >= 0 && aC < n && board[aR][aC] == 0;
+      final openEnds = (openBefore ? 1 : 0) + (openAfter ? 1 : 0);
+
+      // Score based on count AND openness
+      // Open lines (both ends free) are much more valuable than half-open
       score += switch (count) {
         >= 5 => 100000,
-        4 => 10000,
-        3 => 1000,
-        2 => 100,
-        _ => 10,
+        4 => openEnds == 2 ? 50000 : (openEnds == 1 ? 5000 : 0),
+        3 => openEnds == 2 ? 5000 : (openEnds == 1 ? 500 : 0),
+        2 => openEnds == 2 ? 500 : (openEnds == 1 ? 50 : 0),
+        _ => openEnds > 0 ? 10 : 0,
       };
     }
     board[r][c] = 0;

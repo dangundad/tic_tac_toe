@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:tic_tac_toe/app/admob/ads_banner.dart';
 import 'package:tic_tac_toe/app/admob/ads_helper.dart';
 import 'package:tic_tac_toe/app/controllers/game_controller.dart';
+import 'package:tic_tac_toe/app/data/enums/game_status.dart';
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
 import 'package:tic_tac_toe/app/pages/game/widgets/board_painter.dart';
 import 'package:tic_tac_toe/app/widgets/confetti_overlay.dart';
@@ -86,8 +87,8 @@ class _GamePageContentState extends State<_GamePageContent>
 
     _entranceCtrl.forward();
 
-    _phaseWorker = ever(widget.controller.phase, (phase) {
-      if (phase == GamePhase.gameOver) {
+    _phaseWorker = ever(widget.controller.status, (s) {
+      if (s == GameStatus.gameOver) {
         // Start pulsing when game ends
         _pulseCtrl.repeat(reverse: true);
         Future.delayed(const Duration(milliseconds: 800), () {
@@ -476,17 +477,17 @@ class _StatusBar extends StatelessWidget {
     final isTTT = ctrl.gameType.value == GameType.tictactoe;
 
     return Obx(() {
-      final phase = ctrl.phase.value;
+      final phase = ctrl.status.value;
       final player = ctrl.currentPlayer.value;
       final isAI = ctrl.isVsAI;
 
       String text;
       Color bg;
 
-      if (phase == GamePhase.idle) {
+      if (phase == GameStatus.idle) {
         text = 'ready'.tr;
         bg = cs.surfaceContainerHigh;
-      } else if (phase == GamePhase.gameOver) {
+      } else if (phase == GameStatus.gameOver) {
         final w = ctrl.winner.value;
         text = w == 0
             ? 'draw'.tr
@@ -590,7 +591,7 @@ class _BoardArea extends StatelessWidget {
           aspectRatio: 1,
           child: Obx(() {
             // Win glow pulse overlay
-            final isGameOver = ctrl.phase.value == GamePhase.gameOver;
+            final isGameOver = ctrl.status.value == GameStatus.gameOver;
             final hasWinner = ctrl.winner.value != 0;
 
             return AnimatedBuilder(
