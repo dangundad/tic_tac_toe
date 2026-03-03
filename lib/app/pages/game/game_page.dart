@@ -112,7 +112,7 @@ class _GamePageContentState extends State<_GamePageContent>
   }
 
   void _showResultDialog() {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
 
     final w = widget.controller.winner.value;
     final isTTT = widget.controller.gameType.value == GameType.tictactoe;
@@ -158,7 +158,7 @@ class _GamePageContentState extends State<_GamePageContent>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -174,7 +174,7 @@ class _GamePageContentState extends State<_GamePageContent>
           preferredSize: const Size.fromHeight(3),
           child: Builder(
             builder: (context) {
-              final cs = Theme.of(context).colorScheme;
+              final cs = Get.theme.colorScheme;
               return Container(
                 height: 3,
                 decoration: BoxDecoration(
@@ -403,7 +403,7 @@ class _ResultDialogState extends State<_ResultDialog>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
@@ -473,7 +473,7 @@ class _StatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     final isTTT = ctrl.gameType.value == GameType.tictactoe;
 
     return Obx(() {
@@ -573,7 +573,7 @@ class _BoardArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     final isTTT = ctrl.gameType.value == GameType.tictactoe;
     final isVsAI = ctrl.isVsAI;
 
@@ -675,7 +675,7 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
 
     return Obx(() {
       final w = isTTT ? ctrl.tttWins.value : ctrl.goWins.value;

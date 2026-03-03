@@ -86,7 +86,7 @@ class _HomePageState extends State<_HomePageContent>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     final controller = widget.controller;
 
     return Scaffold(
@@ -192,7 +192,7 @@ class _HomePageState extends State<_HomePageContent>
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(18.r),
@@ -318,7 +318,7 @@ class _GradientStartButtonState extends State<_GradientStartButton>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     return GestureDetector(
       onTapDown: (_) => _pressCtrl.forward(),
       onTapUp: (_) {
@@ -375,7 +375,7 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     return Row(
       children: [
         Container(
@@ -463,7 +463,7 @@ class _DifficultySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     return Obx(() {
       return Row(
         children: [
@@ -543,7 +543,7 @@ class _StatsCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     return Obx(() {
       final isTTT = ctrl.gameType.value == GameType.tictactoe;
       final wins = isTTT ? ctrl.tttWins.value : ctrl.goWins.value;
@@ -695,7 +695,7 @@ class _OptionCardState extends State<_OptionCard>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     return Expanded(
       child: GestureDetector(
         onTapDown: (_) => _pressCtrl.forward(),
@@ -793,7 +793,7 @@ class _AiUpgradeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = Get.theme.colorScheme;
     final isAdReady = RewardedAdManager.to.isAdReady;
 
     return Obx(() {
