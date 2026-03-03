@@ -212,6 +212,21 @@ class Languages extends Translations {
       'ai_upgraded_badge': '⚡ AI 업그레이드됨 (하드)',
       'ai_upgrade_banner_title': 'AI를 최고 난이도로 업그레이드',
       'ai_upgrade_banner_desc': '광고 시청 시 다음 1판에서 AI가 최고 난이도로 동작합니다.',
+      // 설정 키
+      'sound': '소리',
+      'sound_desc': '효과음 재생',
+      'haptic': '진동',
+      'haptic_desc': '상호작용 시 진동',
+      'ads_consent': '광고 동의',
+      'ads_consent_desc': '맞춤 광고 설정 사용',
+      'language': '언어',
+      'clear_data': '로컬 데이터 삭제',
+      'clear_data_desc': '소리, 진동, 동의, 언어 설정 및 기록 로그를 초기화합니다.',
+      'clear_data_confirm': '모든 로컬 설정과 로그를 삭제합니다. 계속할까요?',
+      'confirm': '확인',
+      'clear_data_complete': '모든 로컬 데이터가 초기화됐습니다.',
+      // 결과 기타
+      'close_game': '아슬아슬한 게임이네요!',
     },
   };
 }
