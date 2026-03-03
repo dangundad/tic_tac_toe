@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:vibration/vibration.dart';
 
 import 'package:tic_tac_toe/app/admob/ads_rewarded.dart';
+import 'package:tic_tac_toe/app/controllers/setting_controller.dart';
 import 'package:tic_tac_toe/app/data/enums/ai_difficulty.dart';
 import 'package:tic_tac_toe/app/data/enums/game_mode.dart';
 import 'package:tic_tac_toe/app/data/enums/game_status.dart';
@@ -50,6 +51,8 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   // Confetti (player win only)
   final showConfetti = false.obs;
 
+  bool _hasVibrator = false;
+
   int get gridSize => gameType.value == GameType.tictactoe ? 3 : 15;
   int get winLen => gameType.value == GameType.tictactoe ? 3 : 5;
   bool get isPlaying => status.value == GameStatus.playing;
@@ -59,6 +62,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   @override
   void onInit() {
     super.onInit();
+    Vibration.hasVibrator().then((v) => _hasVibrator = v);
     _loadStats();
     winAnim = AnimationController(
       vsync: this,
@@ -122,11 +126,15 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     _afterPlace(currentPlayer.value);
   }
 
+  bool get _hapticOn =>
+      !Get.isRegistered<SettingController>() ||
+      SettingController.to.hapticEnabled.value;
+
   void _doPlace(int row, int col, int player) {
     board[row][col] = player;
     lastPlaced.value = [row, col];
     board.refresh();
-    HapticFeedback.selectionClick();
+    if (_hapticOn && _hasVibrator) Vibration.vibrate(duration: 30);
   }
 
   void _afterPlace(int player) {
@@ -182,10 +190,10 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     _updateStats(w);
 
     if (w == 1) {
-      HapticFeedback.mediumImpact();
+      if (_hapticOn && _hasVibrator) Vibration.vibrate(duration: 100);
       showConfetti.value = true;
     } else if (w == 0) {
-      HapticFeedback.lightImpact();
+      if (_hapticOn && _hasVibrator) Vibration.vibrate(duration: 50);
     }
   }
 
