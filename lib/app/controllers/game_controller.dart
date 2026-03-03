@@ -233,6 +233,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   List<int>? _findWinLine(int player) {
     final n = gridSize;
     final target = winLen;
+    final isGomoku = gameType.value == GameType.gomoku;
     const dirs = [
       [0, 1],
       [1, 0],
@@ -244,15 +245,24 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
         if (board[r][c] != player) continue;
         for (final dir in dirs) {
           final dr = dir[0], dc = dir[1];
-          bool won = true;
-          for (int k = 1; k < target; k++) {
-            final nr = r + k * dr, nc = c + k * dc;
-            if (nr < 0 || nr >= n || nc < 0 || nc >= n || board[nr][nc] != player) {
-              won = false;
-              break;
-            }
+          // Skip if this cell is not the start of the sequence in this direction
+          // (i.e., the cell before it is also the same player)
+          final pr = r - dr, pc = c - dc;
+          if (pr >= 0 && pr < n && pc >= 0 && pc < n && board[pr][pc] == player) {
+            continue;
           }
-          if (won) {
+          // Count consecutive pieces starting from (r, c)
+          int count = 1;
+          while (true) {
+            final nr = r + count * dr;
+            final nc = c + count * dc;
+            if (nr < 0 || nr >= n || nc < 0 || nc >= n || board[nr][nc] != player) break;
+            count++;
+          }
+          // Gomoku: exactly 5 required (overline = 6+ is not a win)
+          // Tic-Tac-Toe: exactly 3 required
+          final exactMatch = isGomoku ? count == target : count >= target;
+          if (exactMatch) {
             return [r, c, r + (target - 1) * dr, c + (target - 1) * dc];
           }
         }
