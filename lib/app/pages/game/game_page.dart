@@ -404,60 +404,119 @@ class _ResultDialogState extends State<_ResultDialog>
   @override
   Widget build(BuildContext context) {
     final cs = Get.theme.colorScheme;
+    final isWin = widget.emoji == '🎉';
+    final isDraw = widget.emoji == '🤝';
+    final headerStart = isWin
+        ? cs.primaryContainer
+        : isDraw
+            ? cs.secondaryContainer
+            : cs.errorContainer;
+    final headerEnd = isWin
+        ? cs.primary.withValues(alpha: 0.3)
+        : isDraw
+            ? cs.secondary.withValues(alpha: 0.3)
+            : cs.error.withValues(alpha: 0.3);
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-      content: Column(
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ScaleTransition(
-            scale: _emojiScale,
-            child: Text(
-              widget.emoji,
-              style: TextStyle(fontSize: 48.sp),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 20.h),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [headerStart, headerEnd],
+              ),
+            ),
+            child: Center(
+              child: ScaleTransition(
+                scale: _emojiScale,
+                child: Text(
+                  widget.emoji,
+                  style: TextStyle(fontSize: 48.sp),
+                ),
+              ),
             ),
           ),
-          SizedBox(height: 8.h),
-          FadeTransition(
-            opacity: _contentFade,
-            child: SlideTransition(
-              position: _contentSlide,
-              child: Column(
-                children: [
-                  Text(
-                    widget.title,
-                    style: TextStyle(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.w900,
-                      color: widget.titleColor,
+          Padding(
+            padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 8.h),
+            child: FadeTransition(
+              opacity: _contentFade,
+              child: SlideTransition(
+                position: _contentSlide,
+                child: Column(
+                  children: [
+                    Text(
+                      widget.title,
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.w900,
+                        color: widget.titleColor,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    widget.subtitle,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: cs.onSurfaceVariant,
+                    SizedBox(height: 4.h),
+                    Text(
+                      widget.subtitle,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 20.h),
-                  _StatsRow(ctrl: widget.controller, isTTT: widget.isTTT),
-                ],
+                    SizedBox(height: 20.h),
+                    _StatsRow(ctrl: widget.controller, isTTT: widget.isTTT),
+                  ],
+                ),
               ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: widget.onHome,
+                    child: Text('home'.tr),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [cs.primary, cs.tertiary],
+                      ),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12.r),
+                        onTap: widget.onPlayAgain,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          child: Center(
+                            child: Text(
+                              'play_again'.tr,
+                              style: TextStyle(
+                                color: cs.onPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: widget.onHome,
-          child: Text('home'.tr),
-        ),
-        FilledButton(
-          onPressed: widget.onPlayAgain,
-          child: Text('play_again'.tr),
-        ),
-      ],
     )
         .animate()
         .fadeIn(duration: 300.ms)
