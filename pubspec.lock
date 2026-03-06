@@ -689,10 +689,10 @@ packages:
     dependency: "direct main"
     description:
       name: lucide_icons_flutter
-      sha256: "67bc7cc05c3c03eee3405f88a0ca127efca03561db00e2e93cc0a46019c19a7b"
+      sha256: f9fc191c852901b7f8d0d5739166327bd71a0fc32ae32c1ba07501d16b966a1a
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.9"
+    version: "3.1.10"
   matcher:
     dependency: transitive
     description:
@@ -1198,10 +1198,10 @@ packages:
     dependency: "direct main"
     description:
       name: vibration
-      sha256: "7c080254dada753eb298c11c8f7dd56e0e0cae7208088f7af8d91e731fef8ce7"
+      sha256: "9bb06614c69260f8bd11c80fe01ed7988905cf00e3417d656c2647e41f261d87"
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.7"
+    version: "3.1.8"
   vibration_platform_interface:
     dependency: transitive
     description:
