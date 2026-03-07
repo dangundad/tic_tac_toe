@@ -49,6 +49,7 @@ dependencies:
   firebase_analytics: ^12.1.2
   firebase_core: ^4.4.0
   firebase_crashlytics: ^5.0.7
+  confetti: ^0.7.0
   flutter_animate: ^4.5.2
   gma_mediation_applovin: ^2.5.1
   gma_mediation_pangle: ^3.5.0

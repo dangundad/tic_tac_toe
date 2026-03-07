@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vibration/vibration.dart';
@@ -49,7 +50,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   final winProgress = 0.0.obs;
 
   // Confetti (player win only)
-  final showConfetti = false.obs;
+  late final confettiController = ConfettiController(duration: const Duration(seconds: 2));
 
   bool _hasVibrator = false;
 
@@ -73,6 +74,7 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
   @override
   void onClose() {
     winAnim.dispose();
+    confettiController.dispose();
     super.onClose();
   }
 
@@ -113,7 +115,6 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
     isAiThinking.value = false;
     winAnim.reset();
     winProgress.value = 0;
-    showConfetti.value = false;
   }
 
   void placePiece(int row, int col) {
@@ -191,14 +192,10 @@ class GameController extends GetxController with GetTickerProviderStateMixin {
 
     if (w == 1) {
       if (_hapticOn && _hasVibrator) Vibration.vibrate(duration: 100);
-      showConfetti.value = true;
+      confettiController.play();
     } else if (w == 0) {
       if (_hapticOn && _hasVibrator) Vibration.vibrate(duration: 50);
     }
-  }
-
-  void dismissConfetti() {
-    showConfetti.value = false;
   }
 
   Future<void> _updateStats(int w) async {

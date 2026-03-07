@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:tic_tac_toe/app/data/enums/game_type.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class BoardPainter extends CustomPainter {
   final List<List<int>> board;
@@ -47,7 +48,7 @@ class BoardPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(0, 0, size.width, size.height),
-        const Radius.circular(16),
+        Radius.circular(16.r),
       ),
       Paint()..color = bgColor,
     );

@@ -258,16 +258,11 @@ class _GamePageContentState extends State<_GamePageContent>
                 ),
               ],
             ),
-            Obx(() {
-              if (!widget.controller.showConfetti.value) {
-                return const SizedBox.shrink();
-              }
-              return IgnorePointer(
-                child: ConfettiOverlay(
-                  onComplete: widget.controller.dismissConfetti,
-                ),
-              );
-            }),
+            IgnorePointer(
+              child: ConfettiOverlay(
+                controller: widget.controller.confettiController,
+              ),
+            ),
           ],
         ),
       ),
